@@ -39,7 +39,15 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-cursor0
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-xinerama0 libxcb-cursor0 libfuse2 file
+          
+      - name: Download linuxdeploy tools
+        if: runner.os == 'Linux'
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
 
       - name: Configure CMake
         run: cmake -B build -S src -DCMAKE_BUILD_TYPE=Release
@@ -47,13 +55,27 @@ jobs:
       - name: Build
         run: cmake --build build --config Release
 
-      - name: Package (Linux)
+      - name: Package (Linux) - tar.gz
         if: runner.os == 'Linux'
         run: |
           mkdir -p package
           cp build/cremniy package/
           cd package
           tar -czf ../${{ matrix.artifact_name }}.tar.gz *
+          
+      - name: Package (Linux) - AppImage
+        if: runner.os == 'Linux'
+        run: |
+          export QML_SOURCES_PATHS=${{ github.workspace }}/src
+          export QMAKE=$Qt6_DIR/bin/qmake
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable build/cremniy \
+            --desktop-file cremniy.desktop \
+            --icon-file src/resources/icons/icon.png \
+            --plugin qt \
+            --output appimage
+          mv Cremniy-*.AppImage ${{ matrix.artifact_name }}.AppImage || mv cremniy-*.AppImage ${{ matrix.artifact_name }}.AppImage
 
       - name: Package (Windows)
         if: runner.os == 'Windows'
@@ -79,6 +101,7 @@ jobs:
           path: |
             ${{ matrix.artifact_name }}.tar.gz
             ${{ matrix.artifact_name }}.zip
+            ${{ matrix.artifact_name }}.AppImage
 
   release:
     name: Create Release
@@ -100,6 +123,7 @@ jobs:
           files: |
             artifacts/**/*.tar.gz
             artifacts/**/*.zip
+            artifacts/**/*.AppImage
           draft: false
           prerelease: false
           generate_release_notes: true

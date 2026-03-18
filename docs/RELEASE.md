@@ -116,4 +116,4 @@ Artifacts will be available in the "Artifacts" section of the workflow run.
 
 ### Continuous Integration
 
-On every push to `main`, `master`, or `develop` branches, as well as on Pull Request creation, a CI build is automatically triggered to verify that the code compiles on all platforms.
+On every push to `main`, `master`, or `develop` branches, as well as on Pull Request creation, a CI build is automatically triggered to verify that the code compiles on all platforms. 
